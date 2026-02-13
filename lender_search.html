@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRE Lender Match</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #09101d;
+            --bg-card: #111a2e;
+            --bg-input: #0c1322;
+            --bg-hover: rgba(99, 144, 240, 0.06);
+            --border: #1c2a45;
+            --border-active: #3b6cf5;
+            --text-primary: #e8ecf4;
+            --text-secondary: #8494b2;
+            --text-muted: #5a6a85;
+            --accent: #3b6cf5;
+            --accent-hover: #2b5ae0;
+            --green: #2dd4a0;
+            --green-bg: rgba(45, 212, 160, 0.12);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.12);
+            --amber: #f5a623;
+            --amber-bg: rgba(245, 166, 35, 0.12);
+            --gray: #64748b;
+            --gray-bg: rgba(100, 116, 139, 0.12);
+            --red: #ef4444;
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(180deg, #0e1729 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 800; color: #fff;
+        }
+        .header h1 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+        .header h1 span { color: var(--accent); }
+        .header-badge {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── Layout ── */
+        .container { max-width: 1440px; margin: 0 auto; padding: 24px 32px 60px; }
+
+        /* ── Card Base ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        /* ── Deal Input Form ── */
+        .deal-form { padding: 28px; margin-bottom: 20px; }
+        .deal-form h2 {
+            font-size: 15px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 20px;
+        }
+
+        .address-row { margin-bottom: 16px; position: relative; }
+        .address-row input {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .address-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 108, 245, 0.12);
+        }
+        .address-row input::placeholder { color: var(--text-muted); }
+
+        .county-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 8px; padding: 4px 12px;
+            border-radius: 20px; font-size: 12px; font-weight: 500;
+            transition: all 0.3s;
+        }
+        .county-badge.hidden { display: none; }
+        .county-badge.loading { background: var(--blue-bg); color: var(--blue); }
+        .county-badge.success { background: var(--green-bg); color: var(--green); }
+        .county-badge.error { background: rgba(239, 68, 68, 0.12); color: var(--red); }
+
+        /* Address Suggestions Dropdown */
+        .address-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-active);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            z-index: 100;
+            max-height: 280px; overflow-y: auto;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .address-suggestions.hidden { display: none; }
+        .suggestion-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+        }
+        .suggestion-item:hover { background: var(--bg-hover); }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item.active { background: var(--bg-hover); }
+        .suggestion-name {
+            font-size: 14px; color: var(--text-primary); font-weight: 500;
+        }
+        .suggestion-detail {
+            font-size: 12px; color: var(--text-muted); margin-top: 3px;
+        }
+        .suggestion-detail .county-tag {
+            display: inline-block;
+            padding: 1px 7px; margin-left: 4px;
+            border-radius: 4px; font-size: 10px; font-weight: 600;
+            background: rgba(59, 108, 245, 0.1); color: var(--accent);
+        }
+
+        .deal-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 160px;
+            gap: 14px;
+            align-items: end;
+        }
+        @media (max-width: 900px) {
+            .deal-fields { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 540px) {
+            .deal-fields { grid-template-columns: 1fr; }
+        }
+
+        .field label {
+            display: block;
+            font-size: 11px; font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.6px;
+            margin-bottom: 6px;
+        }
+        .field input, .field select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 108, 245, 0.12);
+        }
+        .field input::placeholder { color: var(--text-muted); }
+        .field select { cursor: pointer; }
+
+        .btn-search {
+            padding: 10px 28px; height: 42px;
+            background: var(--accent);
+            color: #fff; border: none;
+            border-radius: 8px;
+            font-size: 14px; font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+        .btn-search:hover { background: var(--accent-hover); }
+        .btn-search:active { transform: scale(0.98); }
+        .btn-search:disabled {
+            background: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Advanced Options */
+        .advanced-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 14px; padding: 4px 0;
+            font-size: 12px; color: var(--text-muted);
+            cursor: pointer; border: none; background: none;
+            transition: color 0.2s;
+        }
+        .advanced-toggle:hover { color: var(--text-secondary); }
+        .advanced-toggle .chevron {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+        .advanced-toggle.open .chevron { transform: rotate(90deg); }
+
+        .advanced-fields {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .advanced-fields.open { display: grid; }
+        @media (max-width: 900px) {
+            .advanced-fields { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* ── Status Bar ── */
+        .status-bar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 20px; margin-bottom: 16px;
+            border-radius: var(--radius);
+            font-size: 13px; color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+        .status-bar.hidden { display: none; }
+        .status-bar.loading { background: var(--blue-bg); border: 1px solid rgba(59, 130, 246, 0.2); }
+        .status-bar.success { background: var(--green-bg); border: 1px solid rgba(45, 212, 160, 0.2); color: var(--green); }
+        .status-bar.error { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--red); }
+
+        .spinner {
+            width: 16px; height: 16px; flex-shrink: 0;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .steps { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+        .step {
+            padding: 2px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 500;
+            background: rgba(255,255,255,0.05); color: var(--text-muted);
+        }
+        .step.active { background: var(--blue-bg); color: var(--blue); }
+        .step.done { background: var(--green-bg); color: var(--green); }
+
+        /* ── Deal Summary Bar ── */
+        .deal-summary {
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, rgba(59, 108, 245, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
+            border: 1px solid rgba(59, 108, 245, 0.15);
+        }
+        .deal-summary.hidden { display: none; }
+        .deal-summary-top {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15px; font-weight: 600; color: var(--text-primary);
+            flex-wrap: wrap;
+        }
+        .deal-summary-top .sep { color: var(--text-muted); font-weight: 300; }
+        .deal-summary-bottom {
+            display: flex; align-items: center; gap: 10px;
+            margin-top: 8px; font-size: 13px; color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+        .deal-summary-bottom .sep { color: var(--border); }
+        .deal-summary-bottom .excellent-count { color: var(--green); font-weight: 600; }
+        .deal-summary-bottom .good-count { color: var(--blue); font-weight: 600; }
+
+        /* ── Results Card ── */
+        .results-card { margin-bottom: 24px; }
+        .results-card.hidden { display: none; }
+
+        .results-toolbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .results-toolbar h2 { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .results-actions { display: flex; gap: 8px; }
+
+        .btn-export {
+            padding: 6px 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 12px; font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Filter Chips */
+        .filter-bar {
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; gap: 6px; flex-wrap: wrap;
+        }
+        .chip {
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .chip:hover { color: var(--text-secondary); background: rgba(255,255,255,0.04); }
+        .chip.active {
+            background: rgba(59, 108, 245, 0.1);
+            border-color: rgba(59, 108, 245, 0.3);
+            color: var(--accent);
+        }
+        .chip .chip-count {
+            display: inline-block; min-width: 18px;
+            padding: 0 5px; margin-left: 4px;
+            border-radius: 10px;
+            font-size: 10px; text-align: center;
+            background: rgba(255,255,255,0.06);
+        }
+        .chip.active .chip-count { background: rgba(59, 108, 245, 0.2); }
+
+        /* Table */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+        thead th {
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(0,0,0,0.15);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 10px; letter-spacing: 0.6px;
+            cursor: pointer; user-select: none;
+            white-space: nowrap;
+            transition: color 0.15s;
+        }
+        thead th:hover { color: var(--text-secondary); }
+        thead th.sorted { color: var(--accent); }
+        thead th .arrow { margin-left: 4px; opacity: 0.4; font-size: 9px; }
+        thead th.sorted .arrow { opacity: 1; }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background 0.15s;
+        }
+        tbody tr:hover { background: var(--bg-hover); }
+        tbody td {
+            padding: 10px 14px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        td.name-cell {
+            white-space: normal; max-width: 260px;
+            font-weight: 500; color: var(--text-primary);
+        }
+        td.money, td.number { text-align: right; font-variant-numeric: tabular-nums; }
+
+        /* Score Badge */
+        .score-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 42px; padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 13px; font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .score-badge.excellent { background: var(--green-bg); color: var(--green); }
+        .score-badge.good { background: var(--blue-bg); color: var(--blue); }
+        .score-badge.fair { background: var(--amber-bg); color: var(--amber); }
+        .score-badge.weak { background: var(--gray-bg); color: var(--gray); }
+
+        /* Type Badge */
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 500;
+        }
+        .type-badge.bank { background: rgba(45, 212, 160, 0.1); color: var(--green); }
+        .type-badge.cu { background: var(--blue-bg); color: var(--blue); }
+        .type-badge.other { background: var(--gray-bg); color: var(--gray); }
+
+        .website-link {
+            color: var(--accent); text-decoration: none; font-size: 12px;
+        }
+        .website-link:hover { text-decoration: underline; }
+
+        /* Pagination */
+        .pagination {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            font-size: 12px; color: var(--text-muted);
+        }
+        .pagination button {
+            padding: 6px 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 12px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pagination button:hover { border-color: var(--accent); color: var(--accent); }
+        .pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .pagination .page-btns { display: flex; gap: 6px; }
+
+        /* ── Empty State ── */
+        .empty-state {
+            text-align: center; padding: 80px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state.hidden { display: none; }
+        .empty-state-icon {
+            width: 64px; height: 64px;
+            margin: 0 auto 16px;
+            background: rgba(59, 108, 245, 0.08);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+        }
+        .empty-state h3 {
+            font-size: 16px; color: var(--text-secondary);
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .empty-state p { font-size: 13px; line-height: 1.6; max-width: 500px; margin: 0 auto; }
+
+        /* ── Transitions ── */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo-icon">L</div>
+        <div>
+            <h1>CRE <span>Lender Match</span></h1>
+        </div>
+    </div>
+    <div class="header-badge">HMDA + FDIC + NCUA</div>
+</div>
+
+<div class="container">
+
+    <!-- Deal Input Form -->
+    <div class="card deal-form">
+        <h2>Enter Your Deal</h2>
+
+        <div class="address-row">
+            <input type="text" id="address" placeholder="Property address, city, or state (e.g. 1250 Brickell Ave, Miami FL)" autocomplete="off" oninput="onAddressInput()" onkeydown="onAddressKeydown(event)" />
+            <div class="address-suggestions hidden" id="addressSuggestions"></div>
+            <div class="county-badge hidden" id="countyBadge"></div>
+        </div>
+
+        <div class="deal-fields">
+            <div class="field">
+                <label>Product Type</label>
+                <select id="productType">
+                    <option value="multifamily">Multifamily (5+ units)</option>
+                    <option value="construction">Construction &amp; Development</option>
+                    <option value="non_res">Non-Residential (Office / Retail / Industrial)</option>
+                    <option value="owner_occ">Owner-Occupied CRE</option>
+                    <option value="all_cre">All CRE</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Loan Purpose</label>
+                <select id="loanPurpose">
+                    <option value="acquisition">Acquisition</option>
+                    <option value="refinance">Refinance</option>
+                    <option value="cashout">Cash-Out Refi</option>
+                    <option value="construction">Construction / Rehab</option>
+                    <option value="bridge">Bridge</option>
+                    <option value="permanent">Permanent</option>
+                    <option value="sba504">SBA 504</option>
+                    <option value="sba7a">SBA 7(a)</option>
+                    <option value="usda">USDA</option>
+                    <option value="mezzanine">Mezzanine</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Loan Amount ($)</label>
+                <input type="text" id="loanAmount" placeholder="e.g. 5,000,000" oninput="formatLoanInput(this)" />
+            </div>
+            <div class="field">
+                <button class="btn-search" id="searchBtn" onclick="runDealSearch()">Find Lenders</button>
+            </div>
+        </div>
+
+        <button class="advanced-toggle" id="advToggle" onclick="toggleAdvanced()">
+            <span class="chevron">&#9654;</span> Advanced Options
+        </button>
+        <div class="advanced-fields" id="advFields">
+            <div class="field">
+                <label>Min Bank Assets ($M)</label>
+                <input type="number" id="minAssets" value="50" />
+            </div>
+            <div class="field">
+                <label>HMDA Years (Multifamily)</label>
+                <select id="years" multiple style="height:64px;">
+                    <option value="2024" selected>2024</option>
+                    <option value="2023" selected>2023</option>
+                    <option value="2022" selected>2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar hidden" id="statusBar">
+        <div class="spinner" id="statusSpinner"></div>
+        <span id="statusText">Searching...</span>
+        <div class="steps" id="progressSteps"></div>
+    </div>
+
+    <!-- Deal Summary -->
+    <div class="deal-summary hidden" id="dealSummary">
+        <div class="deal-summary-top" id="dealSummaryTop"></div>
+        <div class="deal-summary-bottom" id="dealSummaryBottom"></div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card results-card hidden" id="resultsCard">
+        <div class="results-toolbar">
+            <h2 id="resultsTitle">Lender Rankings</h2>
+            <div class="results-actions">
+                <button class="btn-export" onclick="exportCSV()">Export CSV</button>
+                <button class="btn-export" onclick="exportSalesforceCSV()">Salesforce CSV</button>
+            </div>
+        </div>
+
+        <div class="filter-bar" id="filterBar"></div>
+
+        <div class="table-wrap">
+            <table>
+                <thead id="resultsHead"></thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <span id="pageInfo"></span>
+            <div class="page-btns">
+                <button onclick="prevPage()" id="prevBtn" disabled>&laquo; Prev</button>
+                <button onclick="nextPage()" id="nextBtn">Next &raquo;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState">
+        <div class="empty-state-icon">&#127970;</div>
+        <h3>Enter a deal to find matching lenders</h3>
+        <p>
+            Type a property address, select your product type and loan purpose,
+            then click <strong>Find Lenders</strong> to get lenders ranked by how well they fit your specific deal.
+        </p>
+    </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════════
+
+let allResults = [];
+let filteredResults = [];
+let currentFilter = 'all';
+let currentSort = { field: 'matchScore', dir: 'desc' };
+let currentPage = 0;
+const PAGE_SIZE = 50;
+
+let geocodedState = '';
+let geocodedCountyFips = '';
+let geocodedCountyName = '';
+let geocodeTimeout = null;
+let lastDealData = null;
+
+const PURPOSE_LABELS = {
+    acquisition: 'Acquisition', refinance: 'Refinance', cashout: 'Cash-Out Refi',
+    construction: 'Construction / Rehab', bridge: 'Bridge', permanent: 'Permanent',
+    sba504: 'SBA 504', sba7a: 'SBA 7(a)', usda: 'USDA', mezzanine: 'Mezzanine',
+};
+const PRODUCT_LABELS = {
+    multifamily: 'Multifamily', construction: 'Construction & Dev',
+    non_res: 'Non-Residential', owner_occ: 'Owner-Occupied', all_cre: 'All CRE',
+};
+
+// ════════════════════════════════════════════════════════════════
+// Helpers
+// ════════════════════════════════════════════════════════════════
+
+function $(id) { return document.getElementById(id); }
+
+function fmtDollars(n) {
+    if (!n || n === 0) return '$0';
+    if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+    return '$' + n.toLocaleString();
+}
+
+function fmtNumber(n) { return (n || 0).toLocaleString(); }
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text || '';
+    return d.innerHTML;
+}
+
+function formatLoanInput(el) {
+    let raw = el.value.replace(/[^0-9]/g, '');
+    if (raw) {
+        el.value = parseInt(raw).toLocaleString();
+    }
+}
+
+function parseLoanAmount() {
+    return parseInt(($('loanAmount').value || '0').replace(/[^0-9]/g, '')) || 0;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Address Geocoding (suggestion-based)
+// ════════════════════════════════════════════════════════════════
+
+let _suggestions = [];
+let _suggestionIdx = -1;
+
+function onAddressInput() {
+    clearTimeout(geocodeTimeout);
+    const q = $('address').value.trim();
+
+    if (q.length < 3) {
+        hideSuggestions();
+        return;
+    }
+
+    // Clear confirmed location when user edits
+    geocodedState = '';
+    geocodedCountyFips = '';
+    geocodedCountyName = '';
+    $('countyBadge').classList.add('hidden');
+
+    geocodeTimeout = setTimeout(() => fetchSuggestions(q), 400);
+}
+
+function onAddressKeydown(e) {
+    const box = $('addressSuggestions');
+    if (box.classList.contains('hidden')) {
+        if (e.key === 'Enter') return; // let the global handler fire
+        return;
+    }
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _suggestionIdx = Math.min(_suggestionIdx + 1, _suggestions.length - 1);
+        highlightSuggestion();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _suggestionIdx = Math.max(_suggestionIdx - 1, 0);
+        highlightSuggestion();
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (_suggestionIdx >= 0 && _suggestionIdx < _suggestions.length) {
+            selectSuggestion(_suggestionIdx);
+        } else if (_suggestions.length > 0) {
+            selectSuggestion(0);
+        }
+    } else if (e.key === 'Escape') {
+        hideSuggestions();
+    }
+}
+
+function highlightSuggestion() {
+    document.querySelectorAll('.suggestion-item').forEach((el, i) => {
+        el.classList.toggle('active', i === _suggestionIdx);
+    });
+}
+
+async function fetchSuggestions(query) {
+    try {
+        const resp = await fetch(`/api/geocode-suggest?q=${encodeURIComponent(query)}`);
+        const results = await resp.json();
+
+        if (!results || results.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        _suggestions = results;
+        _suggestionIdx = -1;
+        const container = $('addressSuggestions');
+
+        container.innerHTML = results.map((r, i) => {
+            const countyTag = r.county
+                ? `<span class="county-tag">${escapeHtml(r.county)} County</span>`
+                : '';
+            const detail = [r.city, r.state].filter(Boolean).join(', ');
+            return `<div class="suggestion-item" onmousedown="selectSuggestion(${i})">
+                <div class="suggestion-name">${escapeHtml(r.display)}</div>
+                <div class="suggestion-detail">${escapeHtml(detail)}${countyTag}</div>
+            </div>`;
+        }).join('');
+
+        container.classList.remove('hidden');
+    } catch (e) {
+        console.error('Suggest error:', e);
+    }
+}
+
+function hideSuggestions() {
+    $('addressSuggestions').classList.add('hidden');
+    _suggestions = [];
+    _suggestionIdx = -1;
+}
+
+async function selectSuggestion(index) {
+    const s = _suggestions[index];
+    if (!s) return;
+    hideSuggestions();
+
+    // Update address field with clean display name
+    $('address').value = s.display;
+
+    // Show loading badge
+    const badge = $('countyBadge');
+    badge.className = 'county-badge loading';
+    badge.textContent = 'Confirming county...';
+
+    // Get precise FIPS from lat/lon via FCC
+    try {
+        let url = `/api/geocode?lat=${s.lat}&lon=${s.lon}`;
+        if (s.state) url += `&state=${s.state}`;
+        if (s.city) url += `&city=${encodeURIComponent(s.city)}`;
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.error && data.fips) {
+            geocodedState = data.state || s.state;
+            geocodedCountyFips = data.fips;
+            geocodedCountyName = data.name || s.county;
+        } else {
+            // Fall back to Nominatim county info
+            geocodedState = s.state;
+            geocodedCountyFips = '';
+            geocodedCountyName = s.county;
+        }
+    } catch (e) {
+        // Fall back to Nominatim county info
+        geocodedState = s.state;
+        geocodedCountyFips = '';
+        geocodedCountyName = s.county;
+    }
+
+    // Show confirmed badge
+    const county = geocodedCountyName || 'Unknown County';
+    const state = geocodedState || '';
+    badge.className = 'county-badge success';
+    badge.innerHTML = `&#10003; ${escapeHtml(county)} County, ${escapeHtml(state)}`;
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', e => {
+    if (!e.target.closest('.address-row')) hideSuggestions();
+});
+
+// ════════════════════════════════════════════════════════════════
+// Advanced Options Toggle
+// ════════════════════════════════════════════════════════════════
+
+function toggleAdvanced() {
+    const toggle = $('advToggle');
+    const fields = $('advFields');
+    toggle.classList.toggle('open');
+    fields.classList.toggle('open');
+}
+
+// ════════════════════════════════════════════════════════════════
+// Status
+// ════════════════════════════════════════════════════════════════
+
+function setStatus(text, type, steps) {
+    const bar = $('statusBar');
+    bar.className = `status-bar ${type}`;
+    $('statusText').textContent = text;
+    $('statusSpinner').style.display = type === 'loading' ? 'block' : 'none';
+
+    if (steps) {
+        $('progressSteps').innerHTML = steps.map(s =>
+            `<span class="step ${s.status}">${s.label}</span>`
+        ).join('');
+    }
+}
+
+function hideStatus() { $('statusBar').className = 'status-bar hidden'; }
+
+// ════════════════════════════════════════════════════════════════
+// Deal Search
+// ════════════════════════════════════════════════════════════════
+
+async function runDealSearch() {
+    if (!geocodedState) {
+        // User hasn't confirmed a suggestion yet -- try auto-resolving
+        const q = $('address').value.trim();
+        if (q.length < 3) {
+            alert('Please enter a property address, city, or state.');
+            return;
+        }
+        // Fetch suggestions and auto-select the first match
+        try {
+            const resp = await fetch(`/api/geocode-suggest?q=${encodeURIComponent(q)}`);
+            const results = await resp.json();
+            if (results && results.length > 0) {
+                _suggestions = results;
+                await selectSuggestion(0);
+            }
+        } catch (e) { /* ignore */ }
+
+        if (!geocodedState) {
+            alert('Could not determine a location from that input. Try a more specific address, city, or state.');
+            return;
+        }
+    }
+
+    const productType = $('productType').value;
+    const loanPurpose = $('loanPurpose').value;
+    const loanAmount = parseLoanAmount();
+    const minAssets = parseInt($('minAssets').value) || 50;
+    const yearSelect = $('years');
+    const years = Array.from(yearSelect.selectedOptions).map(o => o.value).join(',');
+
+    const searchBtn = $('searchBtn');
+    searchBtn.disabled = true;
+    searchBtn.textContent = 'Searching...';
+    $('emptyState').classList.add('hidden');
+    $('dealSummary').classList.add('hidden');
+    $('resultsCard').classList.add('hidden');
+    allResults = [];
+    filteredResults = [];
+
+    const steps = [
+        { label: 'Banks (FDIC)', status: 'active' },
+        { label: 'Credit Unions', status: '' },
+        { label: 'Scoring', status: '' },
+    ];
+    if (productType === 'multifamily') {
+        steps.splice(2, 0, { label: 'HMDA Data', status: '' });
+    }
+
+    setStatus('Fetching lender data...', 'loading', steps);
+
+    try {
+        let url = `/api/deal-search?state=${geocodedState}&product_type=${productType}`;
+        url += `&loan_amount=${loanAmount}&loan_purpose=${loanPurpose}`;
+        url += `&min_assets=${minAssets}&years=${years}`;
+        if (geocodedCountyFips) {
+            url += `&county=${geocodedCountyFips}&county_name=${encodeURIComponent(geocodedCountyName)}`;
+        }
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (data.error) throw new Error(data.error);
+
+        lastDealData = data;
+        allResults = data.lenders || [];
+        filteredResults = [...allResults];
+
+        // Update steps
+        steps.forEach(s => s.status = 'done');
+        setStatus(
+            `Found ${data.stats.total} lenders in ${((Date.now()) / 1000).toFixed(0) ? '' : ''}${geocodedState}`,
+            'success', steps
+        );
+
+        // Show deal summary
+        showDealSummary(data);
+
+        // Build filter bar
+        buildFilterBar(data.stats);
+
+        // Render table
+        $('resultsCard').classList.remove('hidden');
+        $('resultsCard').classList.add('fade-in');
+        currentPage = 0;
+        currentSort = { field: 'matchScore', dir: 'desc' };
+        updateTableHeaders(productType);
+        renderTable();
+
+    } catch (err) {
+        setStatus('Error: ' + err.message, 'error', []);
+        console.error(err);
+    } finally {
+        searchBtn.disabled = false;
+        searchBtn.textContent = 'Find Lenders';
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Deal Summary Bar
+// ════════════════════════════════════════════════════════════════
+
+function showDealSummary(data) {
+    const deal = data.deal;
+    const stats = data.stats;
+    const productLabel = PRODUCT_LABELS[deal.product_type] || deal.product_label || deal.product_type;
+    const purposeLabel = PURPOSE_LABELS[deal.loan_purpose] || deal.loan_purpose;
+    const amountStr = deal.loan_amount ? fmtDollars(deal.loan_amount) : '';
+    const locationStr = deal.county
+        ? `${deal.county}, ${deal.state}`
+        : deal.state;
+
+    const parts = [productLabel, purposeLabel];
+    if (amountStr) parts.push(amountStr);
+    parts.push(locationStr);
+
+    $('dealSummaryTop').innerHTML = parts.map((p, i) =>
+        (i > 0 ? '<span class="sep">&middot;</span>' : '') + escapeHtml(p)
+    ).join('');
+
+    const bottomParts = [
+        `${stats.total} lender${stats.total !== 1 ? 's' : ''} found`,
+    ];
+    if (stats.excellent > 0) bottomParts.push(`<span class="excellent-count">${stats.excellent} excellent</span>`);
+    if (stats.good > 0) bottomParts.push(`<span class="good-count">${stats.good} good</span>`);
+
+    $('dealSummaryBottom').innerHTML = bottomParts.join('<span class="sep">&middot;</span>');
+
+    $('dealSummary').className = 'deal-summary fade-in';
+}
+
+// ════════════════════════════════════════════════════════════════
+// Filter Bar
+// ════════════════════════════════════════════════════════════════
+
+function buildFilterBar(stats) {
+    const bar = $('filterBar');
+    const filters = [
+        { key: 'all', label: 'All', count: stats.total },
+        { key: 'Bank', label: 'Banks', count: stats.banks },
+        { key: 'Credit Union', label: 'Credit Unions', count: stats.creditUnions },
+        { key: 'excellent', label: 'Excellent (80+)', count: stats.excellent },
+        { key: 'good60', label: 'Good (60+)', count: stats.excellent + stats.good },
+    ];
+
+    bar.innerHTML = filters.map(f =>
+        `<button class="chip${f.key === 'all' ? ' active' : ''}" data-filter="${f.key}" onclick="setFilter('${f.key}', this)">${f.label}<span class="chip-count">${f.count}</span></button>`
+    ).join('');
+    currentFilter = 'all';
+}
+
+function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-bar .chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (filter === 'all') {
+        filteredResults = [...allResults];
+    } else if (filter === 'excellent') {
+        filteredResults = allResults.filter(r => r.scoreTier === 'excellent');
+    } else if (filter === 'good60') {
+        filteredResults = allResults.filter(r => r.matchScore >= 60);
+    } else {
+        filteredResults = allResults.filter(r => r.type === filter);
+    }
+
+    currentPage = 0;
+    renderTable();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Table Headers
+// ════════════════════════════════════════════════════════════════
+
+function updateTableHeaders(productType) {
+    const isMultifamily = productType === 'multifamily';
+    const thead = $('resultsHead');
+
+    let cols = [
+        { key: 'rank', label: '#', align: '' },
+        { key: 'matchScore', label: 'Score', align: '' },
+        { key: 'name', label: 'Lender', align: '' },
+        { key: 'type', label: 'Type', align: '' },
+        { key: 'portfolioM', label: 'Portfolio ($M)', align: 'right' },
+        { key: 'crePct', label: 'CRE %', align: 'right' },
+        { key: 'assetsM', label: 'Assets ($M)', align: 'right' },
+    ];
+    if (isMultifamily) {
+        cols.push({ key: 'hmdaDeals', label: 'HMDA Deals', align: 'right' });
+    }
+    cols.push(
+        { key: 'location', label: 'Location', align: '' },
+        { key: 'website', label: 'Website', align: '' },
+    );
+
+    thead.innerHTML = '<tr>' + cols.map(c => {
+        const sorted = currentSort.field === c.key;
+        const arrow = c.key === 'name' || c.key === 'location' || c.key === 'website'
+            ? '&#9650;' : '&#9660;';
+        const sortable = c.key !== 'website' && c.key !== 'location';
+        return `<th class="${sorted ? 'sorted' : ''}" ${sortable ? `onclick="sortTable('${c.key}')"` : ''} style="${c.align === 'right' ? 'text-align:right' : ''}">${c.label}${sortable ? `<span class="arrow">${arrow}</span>` : ''}</th>`;
+    }).join('') + '</tr>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// Table Rendering
+// ════════════════════════════════════════════════════════════════
+
+function renderTable() {
+    const tbody = $('resultsBody');
+    const start = currentPage * PAGE_SIZE;
+    const end = Math.min(start + PAGE_SIZE, filteredResults.length);
+    const page = filteredResults.slice(start, end);
+    const isMultifamily = ($('productType').value === 'multifamily');
+
+    tbody.innerHTML = page.map(r => {
+        const typeCls = r.type === 'Bank' ? 'bank' : r.type === 'Credit Union' ? 'cu' : 'other';
+        const loc = [r.city, r.state].filter(Boolean).join(', ');
+        const website = r.website
+            ? `<a class="website-link" href="https://${r.website.replace(/^https?:\/\//, '')}" target="_blank" rel="noopener">${r.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>`
+            : '';
+
+        let row = `<tr>
+            <td class="number">${r.rank}</td>
+            <td><span class="score-badge ${r.scoreTier || 'weak'}">${r.matchScore || 0}</span></td>
+            <td class="name-cell">${escapeHtml(r.name)}</td>
+            <td><span class="type-badge ${typeCls}">${r.type}</span></td>
+            <td class="money">${r.portfolioM ? '$' + fmtNumber(r.portfolioM) + 'M' : '&#8212;'}</td>
+            <td class="number">${r.crePct ? r.crePct + '%' : '&#8212;'}</td>
+            <td class="money">${r.assetsM ? '$' + fmtNumber(r.assetsM) + 'M' : '&#8212;'}</td>`;
+        if (isMultifamily) {
+            row += `<td class="number">${r.hmdaDeals ? fmtNumber(r.hmdaDeals) : '&#8212;'}</td>`;
+        }
+        row += `<td>${escapeHtml(loc)}</td>
+            <td>${website}</td>
+        </tr>`;
+        return row;
+    }).join('');
+
+    // Pagination
+    $('pageInfo').textContent = filteredResults.length > 0
+        ? `Showing ${start + 1}-${end} of ${filteredResults.length}`
+        : 'No results';
+    $('prevBtn').disabled = currentPage === 0;
+    $('nextBtn').disabled = end >= filteredResults.length;
+}
+
+function nextPage() {
+    if ((currentPage + 1) * PAGE_SIZE < filteredResults.length) {
+        currentPage++;
+        renderTable();
+    }
+}
+function prevPage() {
+    if (currentPage > 0) {
+        currentPage--;
+        renderTable();
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Sorting
+// ════════════════════════════════════════════════════════════════
+
+function sortTable(field) {
+    if (currentSort.field === field) {
+        currentSort.dir = currentSort.dir === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentSort = { field, dir: field === 'name' ? 'asc' : 'desc' };
+    }
+
+    filteredResults.sort((a, b) => {
+        let va = a[field] ?? 0;
+        let vb = b[field] ?? 0;
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return currentSort.dir === 'asc' ? -1 : 1;
+        if (va > vb) return currentSort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    currentPage = 0;
+    updateTableHeaders($('productType').value);
+    renderTable();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Export CSV
+// ════════════════════════════════════════════════════════════════
+
+function exportCSV() {
+    if (filteredResults.length === 0) return;
+    const isMultifamily = ($('productType').value === 'multifamily');
+
+    let headers = ['Rank','Match Score','Score Tier','Lender Name','Type','Portfolio ($M)','CRE %','Assets ($M)'];
+    if (isMultifamily) headers.push('HMDA Deals','HMDA Volume');
+    headers.push('City','State','Website');
+
+    const rows = filteredResults.map(r => {
+        let row = [
+            r.rank, r.matchScore, r.scoreTier || '',
+            `"${(r.name || '').replace(/"/g, '""')}"`,
+            r.type, r.portfolioM || '', r.crePct || '', r.assetsM || '',
+        ];
+        if (isMultifamily) row.push(r.hmdaDeals || '', r.hmdaVolume || '');
+        row.push(`"${r.city || ''}"`, r.state || '', r.website || '');
+        return row;
+    });
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    downloadFile(csv, `lender_match_${geocodedState || 'results'}.csv`, 'text/csv');
+}
+
+function exportSalesforceCSV() {
+    if (filteredResults.length === 0) return;
+    const deal = lastDealData?.deal || {};
+    const productLabel = PRODUCT_LABELS[deal.product_type] || deal.product_type || '';
+    const purposeLabel = PURPOSE_LABELS[deal.loan_purpose] || deal.loan_purpose || '';
+    const amountStr = deal.loan_amount ? fmtDollars(deal.loan_amount) : '';
+
+    const headers = ['Account Name','Type','Industry','Website','BillingCity','BillingState','Description'];
+    const rows = filteredResults.map(r => {
+        const desc = `Match Score: ${r.matchScore}/100 (${r.scoreTier}). ${productLabel} ${purposeLabel} ${amountStr}. Portfolio: $${r.portfolioM || 0}M. CRE: ${r.crePct || 0}%. Assets: $${r.assetsM || 0}M.${r.hmdaDeals ? ' HMDA Deals: ' + r.hmdaDeals + '.' : ''}`;
+        return [
+            `"${(r.name || '').replace(/"/g, '""')}"`,
+            r.type === 'Credit Union' ? 'Credit Union' : 'Bank',
+            'Banking',
+            r.website || '',
+            `"${r.city || ''}"`,
+            r.state || '',
+            `"${desc.replace(/"/g, '""')}"`,
+        ];
+    });
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    downloadFile(csv, `lender_match_salesforce_${geocodedState || 'results'}.csv`, 'text/csv');
+}
+
+function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Keyboard: Enter to search
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !$('searchBtn').disabled) runDealSearch();
+});
+</script>
+
+</body>
+</html>
