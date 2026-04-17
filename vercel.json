@@ -1,0 +1,12 @@
+{
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "functions": {
+    "api/**/*.py": {
+      "maxDuration": 300,
+      "includeFiles": "{ncua_data/**,specialty_lenders.json}"
+    }
+  }
+}

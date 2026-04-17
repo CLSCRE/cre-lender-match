@@ -1,0 +1,172 @@
+{
+  "_meta": {
+    "description": "Curated specialty CRE lenders grouped by product type. These are merged into FDIC/NCUA portfolio results for niche product types where call-report buckets don't capture the real lender universe (agency, CMBS, SBA, HUD, etc.).",
+    "last_updated": "2026-04-16",
+    "source": "CLS CRE internal lender relationships + public market knowledge"
+  },
+
+  "student_housing": [
+    {"name": "Fannie Mae DUS — Student Housing", "type": "Agency", "focus": "Purpose-built student housing near major universities, 5+ years operating history", "website": "fanniemae.com/multifamily", "notes": "Agency DUS lenders underwrite. Best for stabilized properties."},
+    {"name": "Freddie Mac Student Housing", "type": "Agency", "focus": "Near Tier 1/Tier 2 universities, 90%+ pre-leasing", "website": "mf.freddiemac.com", "notes": "Conventional and SBL products available."},
+    {"name": "Greystone", "type": "Agency/CMBS", "focus": "Student housing agency + bridge", "website": "greystone.com", "notes": "Top-3 student housing originator."},
+    {"name": "Berkadia", "type": "Agency/CMBS", "focus": "Student housing agency + mortgage banking", "website": "berkadia.com", "notes": "Dedicated student housing team."},
+    {"name": "Walker & Dunlop", "type": "Agency/CMBS", "focus": "Student housing, purpose-built", "website": "walkerdunlop.com", "notes": "Large agency DUS cap."},
+    {"name": "JLL Capital Markets — Student Housing", "type": "CMBS/Debt Advisory", "focus": "Large deals, CMBS and balance-sheet", "website": "jll.com", "notes": "Strong on stabilized and development."},
+    {"name": "CBRE Student Housing", "type": "Agency/CMBS", "focus": "Full spectrum — agency, CMBS, bridge", "website": "cbre.com", "notes": ""},
+    {"name": "NewPoint Real Estate Capital", "type": "Agency", "focus": "Student housing agency", "website": "newpoint.com", "notes": "Fannie/Freddie DUS lender with dedicated student team."}
+  ],
+
+  "affordable_housing": [
+    {"name": "Freddie Mac TEL / TEBS", "type": "Agency", "focus": "LIHTC preservation and new construction, tax-exempt loans", "website": "mf.freddiemac.com", "notes": "Required for LIHTC deals at most scales."},
+    {"name": "Fannie Mae MTEB / Affordable", "type": "Agency", "focus": "LIHTC, workforce housing, bond credit enhancement", "website": "fanniemae.com/multifamily", "notes": ""},
+    {"name": "HUD 221(d)(4)", "type": "FHA/HUD", "focus": "Ground-up construction + perm, 40-year term", "website": "hud.gov", "notes": "Best leverage for new construction affordable."},
+    {"name": "HUD 223(f)", "type": "FHA/HUD", "focus": "Refinance/acquisition of existing affordable", "website": "hud.gov", "notes": "35-year fixed, non-recourse."},
+    {"name": "Citi Community Capital", "type": "Bank/CRA", "focus": "LIHTC construction + perm, tax-exempt bonds", "website": "citicommunitycapital.com", "notes": "Largest affordable lender in US."},
+    {"name": "JPMorgan Chase Community Development", "type": "Bank/CRA", "focus": "LIHTC, CRA-qualified deals", "website": "jpmorganchase.com", "notes": ""},
+    {"name": "Bank of America Community Development Banking", "type": "Bank/CRA", "focus": "LIHTC, NMTC, affordable", "website": "bankofamerica.com", "notes": ""},
+    {"name": "Wells Fargo Community Lending", "type": "Bank/CRA", "focus": "LIHTC, tax credit equity + debt", "website": "wellsfargo.com", "notes": ""},
+    {"name": "CPC (Community Preservation Corporation)", "type": "CDFI", "focus": "Affordable + workforce multifamily", "website": "communityp.com", "notes": "Strong in NY/NJ/CT."},
+    {"name": "RBC Capital Markets — Tax Credit Equity", "type": "Equity/Syndicator", "focus": "LIHTC equity syndication", "website": "rbccm.com", "notes": ""}
+  ],
+
+  "senior_housing": [
+    {"name": "Fannie Mae Seniors Housing", "type": "Agency", "focus": "Independent living, assisted living with independent component", "website": "fanniemae.com/multifamily", "notes": ""},
+    {"name": "Freddie Mac Seniors Housing", "type": "Agency", "focus": "Independent living, active adult", "website": "mf.freddiemac.com", "notes": ""},
+    {"name": "HUD 232 / 232(f)", "type": "FHA/HUD", "focus": "AL, memory care, SNF — non-recourse, 35-yr", "website": "hud.gov", "notes": "Gold standard for skilled nursing and AL refi."},
+    {"name": "Lument", "type": "Agency/HUD/Bridge", "focus": "Seniors housing full spectrum — Fannie, Freddie, FHA, bridge", "website": "lument.com", "notes": "Top-tier seniors housing originator (ORIX)."},
+    {"name": "Berkadia Seniors Housing", "type": "Agency/HUD", "focus": "Independent living through SNF", "website": "berkadia.com", "notes": ""},
+    {"name": "Capital One Healthcare", "type": "Bank/Bridge", "focus": "Seniors housing bridge + perm", "website": "capitalone.com/healthcare", "notes": ""},
+    {"name": "NewPoint Real Estate Capital — Seniors", "type": "Agency/HUD", "focus": "Seniors housing agency + FHA", "website": "newpoint.com", "notes": ""},
+    {"name": "Greystone Seniors", "type": "Agency/HUD/Bridge", "focus": "Full-service seniors housing debt", "website": "greystone.com", "notes": ""}
+  ],
+
+  "manufactured_housing": [
+    {"name": "Fannie Mae MH Community", "type": "Agency", "focus": "3-star and above MHC, 50+ pads", "website": "fanniemae.com/multifamily", "notes": ""},
+    {"name": "Freddie Mac Manufactured Housing", "type": "Agency", "focus": "MHC stabilized + value-add", "website": "mf.freddiemac.com", "notes": ""},
+    {"name": "JLL Capital Markets — MH/RV", "type": "Agency/CMBS", "focus": "Institutional MHC debt placement", "website": "jll.com", "notes": ""},
+    {"name": "Bellwether Enterprise", "type": "Agency/CMBS", "focus": "MHC agency + bank debt", "website": "bellwetherenterprise.com", "notes": ""},
+    {"name": "Northmarq", "type": "Agency/CMBS", "focus": "MHC and RV park agency", "website": "northmarq.com", "notes": ""},
+    {"name": "Sunwest Bank — MHC", "type": "Bank", "focus": "West Coast MHC balance sheet", "website": "sunwestbank.com", "notes": ""}
+  ],
+
+  "hospitality": [
+    {"name": "Live Oak Bank", "type": "SBA/Bank", "focus": "SBA 7(a) and 504 for limited-service and flagged hotels", "website": "liveoakbank.com", "notes": "Top SBA hotel lender in US."},
+    {"name": "Celtic Bank", "type": "SBA", "focus": "SBA 7(a) hotel up to $5M", "website": "celticbank.com", "notes": ""},
+    {"name": "Byline Bank Small Business Capital", "type": "SBA/Bank", "focus": "SBA 7(a) and conventional hotel", "website": "bylinebank.com", "notes": ""},
+    {"name": "Access Point Financial", "type": "Specialty Finance", "focus": "Hotel bridge, PIP financing, construction", "website": "accesspointfinancial.com", "notes": "Flagged hotel specialty."},
+    {"name": "Stonehill (Peachtree Group)", "type": "Specialty Finance", "focus": "Hotel bridge, mezzanine, CPACE, construction", "website": "stonehillpace.com", "notes": "Largest non-bank hotel lender."},
+    {"name": "Wells Fargo Hospitality Finance", "type": "Bank/CMBS", "focus": "Large flag hotels, CMBS and balance sheet", "website": "wellsfargo.com", "notes": ""},
+    {"name": "Western Alliance Hotel Franchise Finance", "type": "Bank", "focus": "Flagged hotels, franchisee balance sheet", "website": "westernalliancebancorporation.com", "notes": ""},
+    {"name": "Pacific Western Bank — Hospitality", "type": "Bank", "focus": "West Coast flagged hotels", "website": "pacwest.com", "notes": ""},
+    {"name": "HALL Structured Finance", "type": "Specialty Finance", "focus": "Hotel construction, bridge, mezz", "website": "hallsf.com", "notes": ""},
+    {"name": "Buchanan Mortgage Capital", "type": "Specialty Finance", "focus": "Hotel bridge, CMBS advisory", "website": "buchananmortgage.com", "notes": ""}
+  ],
+
+  "office": [
+    {"name": "Wells Fargo Commercial Real Estate", "type": "Bank/CMBS", "focus": "Stabilized office, Class A", "website": "wellsfargo.com", "notes": ""},
+    {"name": "JPMorgan Chase Commercial Real Estate", "type": "Bank", "focus": "Balance-sheet office", "website": "jpmorganchase.com", "notes": ""},
+    {"name": "Bank of America CRE", "type": "Bank", "focus": "Stabilized urban/suburban office", "website": "bankofamerica.com", "notes": ""},
+    {"name": "Goldman Sachs CMBS", "type": "CMBS", "focus": "Large office CMBS (with caveats in current market)", "website": "goldmansachs.com", "notes": ""},
+    {"name": "Starwood Property Trust", "type": "Debt Fund/Bridge", "focus": "Office bridge, value-add", "website": "starwoodpropertytrust.com", "notes": ""},
+    {"name": "Blackstone Real Estate Debt Strategies", "type": "Debt Fund/Bridge", "focus": "Large-balance office bridge", "website": "blackstone.com", "notes": ""},
+    {"name": "Mesa West Capital", "type": "Debt Fund/Bridge", "focus": "Office transitional/bridge", "website": "mesawestcapital.com", "notes": ""}
+  ],
+
+  "retail": [
+    {"name": "Wells Fargo Retail CRE", "type": "Bank/CMBS", "focus": "Grocery-anchored and power centers", "website": "wellsfargo.com", "notes": ""},
+    {"name": "PNC Real Estate", "type": "Bank", "focus": "Grocery-anchored retail, unanchored strips", "website": "pnc.com", "notes": ""},
+    {"name": "Barings Real Estate Debt", "type": "Debt Fund/Life Co", "focus": "Retail perm, fixed-rate", "website": "barings.com", "notes": ""},
+    {"name": "Nuveen (TIAA) Real Estate Debt", "type": "Life Co", "focus": "Grocery-anchored and necessity retail", "website": "nuveen.com", "notes": ""},
+    {"name": "Principal Real Estate", "type": "Life Co", "focus": "Retail perm, mid-balance", "website": "principal.com", "notes": ""},
+    {"name": "MetLife Investment Management", "type": "Life Co", "focus": "Grocery-anchored retail, long-term fixed", "website": "investments.metlife.com", "notes": ""},
+    {"name": "Northmarq Retail", "type": "CMBS/Life Co", "focus": "Retail debt advisory", "website": "northmarq.com", "notes": ""}
+  ],
+
+  "industrial": [
+    {"name": "Prudential Mortgage Capital Co", "type": "Life Co", "focus": "Industrial perm, institutional quality", "website": "pgim.com", "notes": ""},
+    {"name": "MetLife Investment Management — Industrial", "type": "Life Co", "focus": "Large industrial perm", "website": "investments.metlife.com", "notes": ""},
+    {"name": "New York Life Real Estate Investors", "type": "Life Co", "focus": "Industrial perm, fixed-rate", "website": "newyorklifeinvestors.com", "notes": ""},
+    {"name": "Wells Fargo Industrial CRE", "type": "Bank/CMBS", "focus": "Distribution/logistics", "website": "wellsfargo.com", "notes": ""},
+    {"name": "Barings Industrial Debt", "type": "Life Co/Debt Fund", "focus": "Industrial perm + bridge", "website": "barings.com", "notes": ""},
+    {"name": "JLL Industrial Debt", "type": "CMBS/Debt Advisory", "focus": "Industrial debt placement", "website": "jll.com", "notes": ""},
+    {"name": "Lincoln Financial Real Estate", "type": "Life Co", "focus": "Industrial perm", "website": "lincolnfinancial.com", "notes": ""}
+  ],
+
+  "self_storage": [
+    {"name": "Live Oak Bank Self-Storage", "type": "SBA/Bank", "focus": "SBA 7(a)/504 self-storage, construction", "website": "liveoakbank.com", "notes": "Top SBA self-storage lender."},
+    {"name": "Celtic Bank Self-Storage", "type": "SBA", "focus": "SBA 7(a) self-storage", "website": "celticbank.com", "notes": ""},
+    {"name": "Wells Fargo Self-Storage", "type": "Bank", "focus": "Stabilized self-storage perm", "website": "wellsfargo.com", "notes": ""},
+    {"name": "Talonvest Capital", "type": "Debt Advisory", "focus": "Self-storage debt placement specialist", "website": "talonvest.com", "notes": ""},
+    {"name": "Marcus & Millichap Capital — Self-Storage", "type": "Debt Advisory/CMBS", "focus": "Self-storage debt placement", "website": "mmcapital.com", "notes": ""},
+    {"name": "Cantor Fitzgerald Self-Storage", "type": "CMBS", "focus": "Stabilized self-storage CMBS", "website": "cantor.com", "notes": ""},
+    {"name": "JLL Self-Storage Capital Markets", "type": "CMBS/Debt Advisory", "focus": "Self-storage debt + equity", "website": "jll.com", "notes": ""}
+  ],
+
+  "healthcare": [
+    {"name": "Capital One Healthcare", "type": "Bank/Bridge", "focus": "Medical office, healthcare real estate", "website": "capitalone.com/healthcare", "notes": ""},
+    {"name": "MidCap Financial", "type": "Debt Fund", "focus": "Medical office bridge + perm", "website": "midcapfinancial.com", "notes": ""},
+    {"name": "HJ Sims", "type": "Specialty Finance/Bonds", "focus": "Healthcare bonds, CCRC financing", "website": "hjsims.com", "notes": ""},
+    {"name": "Ziegler", "type": "Specialty Finance", "focus": "Healthcare/senior bonds, tax-exempt", "website": "ziegler.com", "notes": ""},
+    {"name": "JLL Healthcare Capital Markets", "type": "CMBS/Debt Advisory", "focus": "MOB debt placement", "website": "jll.com", "notes": ""},
+    {"name": "Cain Brothers (KeyBanc Capital Markets)", "type": "Specialty Finance", "focus": "Healthcare M&A + real estate debt", "website": "cainbrothers.com", "notes": ""}
+  ],
+
+  "senior_care": [
+    {"name": "HUD 232 / 232(f) — LEAN program", "type": "FHA/HUD", "focus": "SNF, AL, memory care — 35-yr non-recourse", "website": "hud.gov", "notes": "Gold standard for SNF refi."},
+    {"name": "Lument Healthcare", "type": "Agency/HUD/Bridge", "focus": "Seniors housing + SNF full spectrum", "website": "lument.com", "notes": ""},
+    {"name": "Greystone Healthcare", "type": "HUD/Bridge", "focus": "SNF HUD + bridge-to-HUD", "website": "greystone.com", "notes": "Top SNF HUD lender."},
+    {"name": "Berkadia Seniors + SNF", "type": "HUD/Agency", "focus": "SNF HUD refi and acquisition", "website": "berkadia.com", "notes": ""},
+    {"name": "Capital Funding Group", "type": "Specialty Finance", "focus": "SNF bridge and HUD", "website": "capfundinc.com", "notes": ""},
+    {"name": "VIUM Capital", "type": "Specialty Finance", "focus": "SNF/AL bridge-to-HUD", "website": "viumcapital.com", "notes": ""}
+  ],
+
+  "mixed_use": [
+    {"name": "Northmarq Mixed-Use", "type": "CMBS/Life Co/Agency", "focus": "Ground-floor retail + multifamily above", "website": "northmarq.com", "notes": ""},
+    {"name": "JPMorgan Chase CRE — Mixed-Use", "type": "Bank", "focus": "Urban mixed-use balance sheet", "website": "jpmorganchase.com", "notes": ""},
+    {"name": "Wells Fargo CRE — Mixed-Use", "type": "Bank/CMBS", "focus": "Infill mixed-use", "website": "wellsfargo.com", "notes": ""},
+    {"name": "Freddie Mac SBL — Mixed-Use eligible", "type": "Agency", "focus": "Multifamily with ≤40% commercial NRA", "website": "mf.freddiemac.com", "notes": "SBL can underwrite mixed-use if retail is minor."}
+  ],
+
+  "special_purpose": [
+    {"name": "Live Oak Bank — Specialty SBA", "type": "SBA", "focus": "Car washes, funeral homes, vet clinics, gas stations", "website": "liveoakbank.com", "notes": "Largest specialty-use SBA lender."},
+    {"name": "Celtic Bank Specialty", "type": "SBA", "focus": "Car washes, daycares, specialty-use SBA 7(a)", "website": "celticbank.com", "notes": ""},
+    {"name": "Byline Bank — Specialty", "type": "SBA/Bank", "focus": "Car washes, gas stations, quick-service restaurants", "website": "bylinebank.com", "notes": ""},
+    {"name": "Newtek Small Business Finance", "type": "SBA", "focus": "Broad specialty-use SBA 7(a)", "website": "newtekone.com", "notes": ""}
+  ],
+
+  "construction": [
+    {"name": "Bank OZK Real Estate Specialties Group", "type": "Bank/Construction", "focus": "Large-balance CRE construction nationwide", "website": "bankozk.com", "notes": "Top construction balance-sheet lender in US."},
+    {"name": "Wells Fargo Real Estate Construction", "type": "Bank", "focus": "Institutional construction", "website": "wellsfargo.com", "notes": ""},
+    {"name": "JPMorgan Chase Construction", "type": "Bank", "focus": "Multifamily and mixed-use construction", "website": "jpmorganchase.com", "notes": ""},
+    {"name": "PNC Real Estate Construction", "type": "Bank", "focus": "Multifamily and retail construction", "website": "pnc.com", "notes": ""},
+    {"name": "Madison Realty Capital", "type": "Debt Fund", "focus": "Construction and bridge — large balance", "website": "madisonrealtycapital.com", "notes": ""},
+    {"name": "Kennedy Wilson Real Estate Debt", "type": "Debt Fund", "focus": "Construction + heavy value-add", "website": "kennedywilson.com", "notes": ""},
+    {"name": "Mack Real Estate Credit Strategies", "type": "Debt Fund", "focus": "Construction, bridge, preferred equity", "website": "mackrecs.com", "notes": ""}
+  ],
+
+  "owner_occ": [
+    {"name": "Live Oak Bank SBA", "type": "SBA", "focus": "SBA 7(a) and 504 owner-user nationwide", "website": "liveoakbank.com", "notes": ""},
+    {"name": "Newtek Small Business Finance", "type": "SBA", "focus": "SBA 7(a) owner-user", "website": "newtekone.com", "notes": ""},
+    {"name": "Byline Bank Small Business", "type": "SBA/Bank", "focus": "SBA 7(a) + 504", "website": "bylinebank.com", "notes": ""},
+    {"name": "Pursuit Lending (formerly Empire State CDC)", "type": "SBA", "focus": "SBA 504 CDC", "website": "pursuitlending.com", "notes": ""},
+    {"name": "TMC Financing", "type": "SBA", "focus": "SBA 504 CDC (Western US)", "website": "tmcfinancing.com", "notes": ""},
+    {"name": "CDC Small Business Finance", "type": "SBA", "focus": "SBA 504 CDC", "website": "cdcloans.com", "notes": ""}
+  ],
+
+  "sba_owner_user": [
+    {"name": "Live Oak Bank SBA", "type": "SBA", "focus": "SBA 7(a) up to $5M + 504 nationwide", "website": "liveoakbank.com", "notes": "Largest SBA 7(a) lender in the US."},
+    {"name": "Newtek Small Business Finance", "type": "SBA", "focus": "SBA 7(a) owner-user", "website": "newtekone.com", "notes": ""},
+    {"name": "Byline Bank Small Business", "type": "SBA/Bank", "focus": "SBA 7(a) + 504", "website": "bylinebank.com", "notes": ""},
+    {"name": "Celtic Bank", "type": "SBA", "focus": "SBA 7(a) owner-user", "website": "celticbank.com", "notes": ""},
+    {"name": "Readycap Lending", "type": "SBA", "focus": "SBA 7(a) non-bank", "website": "readycapital.com", "notes": ""},
+    {"name": "Pursuit Lending", "type": "SBA CDC", "focus": "SBA 504 second-mortgage CDC", "website": "pursuitlending.com", "notes": ""},
+    {"name": "TMC Financing", "type": "SBA CDC", "focus": "SBA 504 (CA/NV/AZ/OR)", "website": "tmcfinancing.com", "notes": ""},
+    {"name": "CDC Small Business Finance", "type": "SBA CDC", "focus": "SBA 504 (CA nationwide)", "website": "cdcloans.com", "notes": ""}
+  ],
+
+  "land": [
+    {"name": "Private Bridge / Hard Money", "type": "Private/Hard Money", "focus": "Entitled land, short-term", "website": "", "notes": "Most institutional lenders will not finance raw land. Plan for private capital or seller carry."},
+    {"name": "Kennedy Funding", "type": "Hard Money", "focus": "Land and pre-development", "website": "kennedyfunding.com", "notes": ""},
+    {"name": "Anchor Loans", "type": "Private/Bridge", "focus": "Land and pre-development bridge", "website": "anchorloans.com", "notes": ""}
+  ]
+}

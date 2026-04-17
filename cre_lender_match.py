@@ -379,12 +379,30 @@ def compute_cre_concentration(financials: dict) -> dict:
 
 
 # CRE property type to FDIC/NCUA field mapping
+# Call reports only expose 5 buckets (construction, multifamily, non-owner-occ, owner-occ, 1-4 family).
+# Niche product types (student housing, hotel, self-storage, etc.) roll up into the closest bucket;
+# the specialty-lender overlay in specialty_lenders.json adds niche agency/CMBS/SBA/HUD shops on top.
 CRE_TYPE_MAP = {
-    "all_cre":       {"label": "All CRE",                    "fdic_fields": ["LNRECONS", "LNREMULT", "LNRENROT"],      "ncua_fields": ["construction", "multifamily", "nonocc_nonfarm"]},
-    "construction":  {"label": "Construction & Development",  "fdic_fields": ["LNRECONS"],                             "ncua_fields": ["construction", "construction_commercial"]},
-    "multifamily":   {"label": "Multifamily (5+ units)",      "fdic_fields": ["LNREMULT"],                             "ncua_fields": ["multifamily"]},
-    "non_res":       {"label": "Office / Retail / Industrial", "fdic_fields": ["LNRENROT"],                            "ncua_fields": ["nonocc_nonfarm"]},
-    "owner_occ":     {"label": "Owner-Occupied Commercial",   "fdic_fields": ["LNRENROW"],                             "ncua_fields": ["owner_occ_nonfarm"]},
+    "all_cre":              {"label": "All CRE",                      "fdic_fields": ["LNRECONS", "LNREMULT", "LNRENROT"], "ncua_fields": ["construction", "multifamily", "nonocc_nonfarm"]},
+    "multifamily":          {"label": "Multifamily (5+ units)",       "fdic_fields": ["LNREMULT"],                         "ncua_fields": ["multifamily"]},
+    "student_housing":      {"label": "Student Housing",              "fdic_fields": ["LNREMULT"],                         "ncua_fields": ["multifamily"]},
+    "affordable_housing":   {"label": "Affordable Housing (LIHTC)",   "fdic_fields": ["LNREMULT"],                         "ncua_fields": ["multifamily"]},
+    "senior_housing":       {"label": "Senior / Independent Living",  "fdic_fields": ["LNREMULT"],                         "ncua_fields": ["multifamily"]},
+    "manufactured_housing": {"label": "Manufactured Housing Park",    "fdic_fields": ["LNREMULT"],                         "ncua_fields": ["multifamily"]},
+    "hospitality":          {"label": "Hospitality / Hotel",          "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "office":               {"label": "Office",                       "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "retail":               {"label": "Retail / Shopping Center",     "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "industrial":           {"label": "Industrial / Warehouse",       "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "self_storage":         {"label": "Self-Storage",                 "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "healthcare":           {"label": "Healthcare / Medical Office",  "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "senior_care":          {"label": "Senior Care / SNF / ALF",      "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "mixed_use":            {"label": "Mixed-Use",                    "fdic_fields": ["LNRENROT", "LNREMULT"],             "ncua_fields": ["nonocc_nonfarm", "multifamily"]},
+    "special_purpose":      {"label": "Special Purpose",              "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "non_res":              {"label": "Non-Residential Investment",   "fdic_fields": ["LNRENROT"],                         "ncua_fields": ["nonocc_nonfarm"]},
+    "construction":         {"label": "Construction & Development",   "fdic_fields": ["LNRECONS"],                         "ncua_fields": ["construction", "construction_commercial"]},
+    "land":                 {"label": "Land / Development Site",      "fdic_fields": ["LNRECONS"],                         "ncua_fields": ["construction", "construction_commercial"]},
+    "owner_occ":             {"label": "Owner-Occupied CRE",          "fdic_fields": ["LNRENROW"],                         "ncua_fields": ["owner_occ_nonfarm"]},
+    "sba_owner_user":       {"label": "SBA Owner-User (504 / 7a)",    "fdic_fields": ["LNRENROW"],                         "ncua_fields": ["owner_occ_nonfarm"]},
 }
 
 
@@ -529,9 +547,11 @@ def fetch_state_cre_lenders(state: str, property_type: str = "all_cre",
                 "ncua_charter": int(cu_num),
                 "city": cu_info.get("city", ""),
                 "state": cu_info.get("state", ""),
-                "address": "",
-                "zip": "",
-                "website": "",
+                "address": cu_info.get("address", ""),
+                "zip": cu_info.get("zip", ""),
+                "website": cu_info.get("website", ""),
+                "phone": cu_info.get("phone", ""),
+                "ceo": cu_info.get("ceo", ""),
                 "total_assets_m": asset_m,
                 "type_portfolio_k": type_portfolio,
                 "type_portfolio_m": round(type_portfolio / 1000, 1) if type_portfolio >= 1000 else round(type_portfolio / 1000, 3),
@@ -657,14 +677,40 @@ def download_ncua_call_reports(year: int, month: int) -> dict:
                     if reader.fieldnames:
                         reader.fieldnames = [h.strip() for h in reader.fieldnames]
 
+                    # Print headers once to help discover column names
+                    if reader.fieldnames:
+                        print(f"    FOICU.txt headers ({len(reader.fieldnames)}): {reader.fieldnames[:30]}...")
+
                     for row in reader:
                         cu_num = (row.get("CU_NUMBER") or "").strip()
                         if not cu_num:
                             continue
+                        # Phone: try common NCUA column names
+                        phone = (row.get("PHONE") or row.get("PHONENUMBER")
+                                 or row.get("PHONE_NUMBER") or "").strip()
+                        # CEO name
+                        ceo = (row.get("CEO") or row.get("CEO_NAME")
+                               or row.get("CEONAME") or "").strip()
+                        # Street address
+                        address = (row.get("STREET") or row.get("ADDRESS")
+                                   or row.get("PHYSICALADDRESSLINE1")
+                                   or row.get("PHYSICAL_ADDRESS_LINE1") or "").strip()
+                        # Zip code
+                        zipcode = (row.get("ZIP_CODE") or row.get("ZIPCODE")
+                                   or row.get("ZIP") or "").strip()
+                        # Website
+                        website = (row.get("URL") or row.get("WEBSITE")
+                                   or row.get("SITE_URL") or row.get("WEBSITE_URL") or "").strip()
+
                         cu_data[cu_num] = {
                             "cu_name": (row.get("CU_NAME") or "").strip(),
-                            "city": (row.get("CITY") or "").strip(),
-                            "state": (row.get("STATE") or "").strip(),
+                            "city": (row.get("CITY") or row.get("PHYS_CITY") or "").strip(),
+                            "state": (row.get("STATE") or row.get("PHYS_STATE") or "").strip(),
+                            "phone": phone,
+                            "ceo": ceo,
+                            "address": address,
+                            "zip": zipcode,
+                            "website": website,
                         }
 
             # Parse FS220.txt - main balance sheet (total assets, total loans, total RE)
@@ -1606,7 +1652,14 @@ Examples:
         help=f"Comma-separated years (default: {','.join(str(y) for y in DEFAULT_YEARS)})",
     )
     filter_group.add_argument(
-        "--property-type", choices=["multifamily", "construction", "non-res", "owner-occ", "all-cre"],
+        "--property-type",
+        choices=[
+            "all-cre", "multifamily", "student-housing", "affordable-housing",
+            "senior-housing", "manufactured-housing", "hospitality", "office",
+            "retail", "industrial", "self-storage", "healthcare", "senior-care",
+            "mixed-use", "special-purpose", "non-res", "construction", "land",
+            "owner-occ", "sba-owner-user",
+        ],
         default="multifamily",
         help="CRE property type. multifamily uses HMDA origination data. Others use FDIC/NCUA portfolio data.",
     )

@@ -15,6 +15,8 @@ import time
 import csv
 import io
 import bisect
+import re
+import math
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, urlencode
 from pathlib import Path
@@ -86,20 +88,108 @@ STATE_ABBR = {
 # ════════════════════════════════════════════════════════════════════════
 
 CRE_MAP = {
-    "all_cre":      {"label": "All CRE",                      "fields": ["LNRECONS", "LNREMULT", "LNRENROT"]},
-    "construction": {"label": "Construction & Development",    "fields": ["LNRECONS"]},
-    "multifamily":  {"label": "Multifamily (5+ units)",        "fields": ["LNREMULT"]},
-    "non_res":      {"label": "Non-Residential Investment",    "fields": ["LNRENROT"]},
-    "owner_occ":    {"label": "Owner-Occupied CRE",            "fields": ["LNRENROW"]},
+    "all_cre":              {"label": "All CRE",                     "fields": ["LNRECONS", "LNREMULT", "LNRENROT"]},
+    "multifamily":          {"label": "Multifamily (5+ units)",      "fields": ["LNREMULT"]},
+    "student_housing":      {"label": "Student Housing",             "fields": ["LNREMULT"]},
+    "affordable_housing":   {"label": "Affordable Housing (LIHTC)",  "fields": ["LNREMULT"]},
+    "senior_housing":       {"label": "Senior / Independent Living", "fields": ["LNREMULT"]},
+    "manufactured_housing": {"label": "Manufactured Housing Park",   "fields": ["LNREMULT"]},
+    "hospitality":          {"label": "Hospitality / Hotel",         "fields": ["LNRENROT"]},
+    "office":               {"label": "Office",                      "fields": ["LNRENROT"]},
+    "retail":               {"label": "Retail / Shopping Center",    "fields": ["LNRENROT"]},
+    "industrial":           {"label": "Industrial / Warehouse",      "fields": ["LNRENROT"]},
+    "self_storage":         {"label": "Self-Storage",                "fields": ["LNRENROT"]},
+    "healthcare":           {"label": "Healthcare / Medical Office", "fields": ["LNRENROT"]},
+    "senior_care":          {"label": "Senior Care / SNF / ALF",     "fields": ["LNRENROT"]},
+    "mixed_use":            {"label": "Mixed-Use",                   "fields": ["LNRENROT", "LNREMULT"]},
+    "special_purpose":      {"label": "Special Purpose",             "fields": ["LNRENROT"]},
+    "non_res":              {"label": "Non-Residential Investment",  "fields": ["LNRENROT"]},
+    "construction":         {"label": "Construction & Development",  "fields": ["LNRECONS"]},
+    "land":                 {"label": "Land / Development Site",     "fields": ["LNRECONS"]},
+    "owner_occ":            {"label": "Owner-Occupied CRE",          "fields": ["LNRENROW"]},
+    "sba_owner_user":       {"label": "SBA Owner-User (504 / 7a)",   "fields": ["LNRENROW"]},
 }
 
+_MF = ["multifamilyK"]
+_NONOCC = ["nonOccK"]
+_CONS = ["constructionK"]
+_OWNER = ["ownerOccK"]
+
 NCUA_CRE_MAP = {
-    "all_cre":      ["constructionK", "multifamilyK", "nonOccK"],
-    "construction": ["constructionK"],
-    "multifamily":  ["multifamilyK"],
-    "non_res":      ["nonOccK"],
-    "owner_occ":    ["ownerOccK"],
+    "all_cre":              ["constructionK", "multifamilyK", "nonOccK"],
+    "multifamily":          _MF,
+    "student_housing":      _MF,
+    "affordable_housing":   _MF,
+    "senior_housing":       _MF,
+    "manufactured_housing": _MF,
+    "hospitality":          _NONOCC,
+    "office":               _NONOCC,
+    "retail":               _NONOCC,
+    "industrial":           _NONOCC,
+    "self_storage":         _NONOCC,
+    "healthcare":           _NONOCC,
+    "senior_care":          _NONOCC,
+    "mixed_use":            ["nonOccK", "multifamilyK"],
+    "special_purpose":      _NONOCC,
+    "non_res":              _NONOCC,
+    "construction":         _CONS,
+    "land":                 _CONS,
+    "owner_occ":            _OWNER,
+    "sba_owner_user":       _OWNER,
 }
+
+# ════════════════════════════════════════════════════════════════════════
+# Specialty lender overlay — niche agency/CMBS/SBA/HUD shops that don't
+# show up in FDIC/NCUA call reports but are the real lenders for niche
+# product types (student housing, hotel, SNF, self-storage, etc.)
+# ════════════════════════════════════════════════════════════════════════
+
+_specialty_lenders = None
+
+
+def load_specialty_lenders():
+    global _specialty_lenders
+    if _specialty_lenders is not None:
+        return _specialty_lenders
+    path = STATIC_DIR / "specialty_lenders.json"
+    if not path.exists():
+        _specialty_lenders = {}
+        return _specialty_lenders
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        _specialty_lenders = {k: v for k, v in data.items() if not k.startswith("_")}
+        print(f"  Loaded specialty lenders for {len(_specialty_lenders)} product types")
+    except Exception as e:
+        print(f"  WARNING: could not load specialty_lenders.json: {e}")
+        _specialty_lenders = {}
+    return _specialty_lenders
+
+
+def build_specialty_entries(product_type, state):
+    """Return lender dicts from specialty_lenders.json for the product type, shaped to match
+    the FDIC/NCUA schema so they merge cleanly into the unified results."""
+    specialty = load_specialty_lenders()
+    entries = specialty.get(product_type, [])
+    out = []
+    for e in entries:
+        out.append({
+            "name": e.get("name", ""),
+            "type": e.get("type", "Specialty"),
+            "city": "", "state": state or "",
+            "website": e.get("website", ""),
+            "address": "", "zip": "",
+            "phone": "", "ceo": "",
+            "assetsM": 0,
+            "portfolioK": 0, "portfolioM": 0, "crePct": 0,
+            "multifamilyK": 0, "constructionK": 0, "nonOccK": 0, "ownerOccK": 0,
+            "dataSource": "Specialty",
+            "specialtyFocus": e.get("focus", ""),
+            "specialtyNotes": e.get("notes", ""),
+            "hmdaDeals": 0, "hmdaVolume": 0,
+            "hmdaMinLoan": 0, "hmdaMaxLoan": 0, "hmdaAvgLoan": 0,
+        })
+    return out
 
 # ════════════════════════════════════════════════════════════════════════
 # NCUA cached data loader
@@ -231,6 +321,80 @@ def fetch_fdic_batch(state, min_assets_m=50):
 
 
 # ════════════════════════════════════════════════════════════════════════
+# NCUA Details API enrichment (phone, CEO, website)
+# ════════════════════════════════════════════════════════════════════════
+
+_ncua_details_cache = {}
+
+
+def _fmt_phone(raw):
+    """Format a 10-digit phone string as (XXX) XXX-XXXX."""
+    digits = ''.join(c for c in str(raw or '') if c.isdigit())
+    if len(digits) == 10:
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+    if len(digits) == 11 and digits[0] == '1':
+        return f"({digits[1:4]}) {digits[4:7]}-{digits[7:]}"
+    return raw or ""
+
+
+def _fetch_ncua_detail(charter):
+    """Fetch phone/CEO/website for one CU. Returns dict or None."""
+    if charter in _ncua_details_cache:
+        return _ncua_details_cache[charter]
+    try:
+        resp = SESSION.get(f"{NCUA_DETAILS_URL}/{charter}", timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("isError"):
+            return None
+        result = {
+            "phone": _fmt_phone(data.get("creditUnionPhone", "")),
+            "ceo": data.get("creditUnionCeo", ""),
+            "website": data.get("creditUnionWebsite", ""),
+        }
+        _ncua_details_cache[charter] = result
+        return result
+    except Exception:
+        return None
+
+
+def enrich_ncua_details(cu_list):
+    """Batch-enrich a list of CU dicts with phone/CEO/website via NCUA Details API."""
+    # Only enrich CUs that are missing contact info
+    to_enrich = [cu for cu in cu_list if not cu.get("phone") and not cu.get("ceo")]
+    if not to_enrich:
+        return
+
+    charters = [cu["charter"] for cu in to_enrich]
+    print(f"  NCUA Details: enriching {len(charters)} credit unions with phone/CEO/website...")
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_fetch_ncua_detail, ch): ch for ch in charters}
+        for future in futures:
+            ch = futures[future]
+            try:
+                detail = future.result()
+                if detail:
+                    results[ch] = detail
+            except Exception:
+                pass
+
+    # Apply results
+    enriched = 0
+    for cu in to_enrich:
+        detail = results.get(cu["charter"])
+        if detail:
+            cu["phone"] = detail.get("phone", "")
+            cu["ceo"] = detail.get("ceo", "")
+            if not cu.get("website"):
+                cu["website"] = detail.get("website", "")
+            enriched += 1
+
+    print(f"  NCUA Details: enriched {enriched}/{len(to_enrich)} credit unions")
+
+
+# ════════════════════════════════════════════════════════════════════════
 # NCUA state filter (from cached JSON)
 # ════════════════════════════════════════════════════════════════════════
 
@@ -267,9 +431,17 @@ def get_ncua_for_state(state, min_assets_m=50):
             "nonOccK": round(nonocc / 1000, 1),
             "ownerOccK": round(owner_occ / 1000, 1),
             "crePct": cre_pct,
-            "website": "",
+            "phone": cu.get("phone", ""),
+            "ceo": cu.get("ceo", ""),
+            "address": cu.get("address", ""),
+            "zip": cu.get("zip", ""),
+            "website": cu.get("website", ""),
             "dataSource": "NCUA",
         })
+
+    # Enrich with phone/CEO/website from NCUA Details API
+    enrich_ncua_details(results)
+
     return results
 
 
@@ -337,12 +509,16 @@ def fetch_hmda_for_deal(county_fips, state, years="2022,2023,2024"):
 # Build unified lender list from FDIC + NCUA
 # ════════════════════════════════════════════════════════════════════════
 
-def build_lender_list(fdic_data, ncua_lenders, product_type):
+def build_lender_list(fdic_data, ncua_lenders, product_type, state=""):
     cre_config = CRE_MAP.get(product_type, CRE_MAP["all_cre"])
     fdic_fields = cre_config["fields"]
     ncua_fields = NCUA_CRE_MAP.get(product_type, NCUA_CRE_MAP["all_cre"])
 
     lenders = []
+
+    # Specialty lender overlay (agency/CMBS/SBA/HUD) for niche product types.
+    # These aren't in FDIC/NCUA call reports but are the real lenders for the niche.
+    lenders.extend(build_specialty_entries(product_type, state))
 
     # FDIC banks
     for cert, inst in fdic_data.get("institutions", {}).items():
@@ -371,6 +547,8 @@ def build_lender_list(fdic_data, ncua_lenders, product_type):
             "website": inst.get("WEBADDR", ""),
             "address": inst.get("ADDRESS", ""),
             "zip": inst.get("ZIP", ""),
+            "phone": "",
+            "ceo": "",
             "assetsM": round(asset_k / 1000, 1),
             "portfolioK": portfolio_k,
             "portfolioM": round(portfolio_k / 1000, 1),
@@ -384,6 +562,7 @@ def build_lender_list(fdic_data, ncua_lenders, product_type):
             "hmdaVolume": 0,
             "hmdaMinLoan": 0,
             "hmdaMaxLoan": 0,
+            "hmdaAvgLoan": 0,
         })
 
     # NCUA credit unions
@@ -399,8 +578,10 @@ def build_lender_list(fdic_data, ncua_lenders, product_type):
             "city": cu.get("city", ""),
             "state": cu.get("state", ""),
             "website": cu.get("website", ""),
-            "address": "",
-            "zip": "",
+            "address": cu.get("address", ""),
+            "zip": cu.get("zip", ""),
+            "phone": cu.get("phone", ""),
+            "ceo": cu.get("ceo", ""),
             "assetsM": cu.get("assetsM", 0),
             "portfolioK": portfolio_k,
             "portfolioM": round(portfolio_k / 1000, 1),
@@ -414,6 +595,7 @@ def build_lender_list(fdic_data, ncua_lenders, product_type):
             "hmdaVolume": 0,
             "hmdaMinLoan": 0,
             "hmdaMaxLoan": 0,
+            "hmdaAvgLoan": 0,
         })
 
     return lenders
@@ -503,6 +685,8 @@ def attach_hmda_data(lenders, hmda_data, county_fips):
             "website": "",
             "address": "",
             "zip": "",
+            "phone": "",
+            "ceo": "",
             "assetsM": 0,
             "portfolioK": 0,
             "portfolioM": 0,
@@ -525,16 +709,19 @@ def attach_hmda_data(lenders, hmda_data, county_fips):
 # ════════════════════════════════════════════════════════════════════════
 
 def compute_match_scores(lenders, deal):
-    product_type = deal.get("product_type", "all_cre")
-    is_multifamily = product_type in ("multifamily",)
     has_hmda = any(l.get("hmdaDeals", 0) > 0 for l in lenders)
 
     # Pre-compute percentile data
     portfolios = sorted(l.get("portfolioK", 0) for l in lenders if l.get("portfolioK", 0) > 0)
 
     for lender in lenders:
-        if is_multifamily and has_hmda:
-            score = _score_multifamily(lender, deal, lenders, portfolios)
+        # Specialty lenders (agency/CMBS/SBA/HUD overlay) don't have call-report data,
+        # so we can't score them with the standard formula. Give them a fixed score
+        # that lands in the "good" tier since they're curated for the product type.
+        if lender.get("dataSource") == "Specialty":
+            score = 75
+        elif has_hmda:
+            score = _score_with_hmda(lender, deal, lenders, portfolios)
         else:
             score = _score_portfolio(lender, deal, portfolios)
 
@@ -603,7 +790,7 @@ def _score_portfolio(lender, deal, sorted_portfolios):
     return min(100, round(score))
 
 
-def _score_multifamily(lender, deal, all_lenders, sorted_portfolios):
+def _score_with_hmda(lender, deal, all_lenders, sorted_portfolios):
     score = 0.0
     loan_amount = deal.get("loan_amount", 0) or 0
 
@@ -684,6 +871,11 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def end_headers(self):
+        if self.path and self.path.endswith('.html'):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        super().end_headers()
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -713,8 +905,23 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
             return self.handle_ncua_search(parsed)
         if path.startswith("/api/ncua/details/"):
             return self.handle_ncua_details(parsed, path)
+        if path == "/api/branches":
+            return self.handle_branches(parsed)
 
         return super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        content_len = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(content_len)) if content_len > 0 else {}
+
+        if path == "/api/enrich/officers":
+            return self.handle_find_officers(body)
+        if path == "/api/enrich/contacts":
+            return self.handle_enrich_contacts(body)
+
+        self.send_error_json("Not found", 404)
 
     def send_json(self, data, status=200):
         body = json.dumps(data).encode("utf-8")
@@ -860,7 +1067,6 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
         if not state:
             return self.send_error_json("state required", 400)
 
-        is_multifamily = product_type in ("multifamily",)
         cre_label = CRE_MAP.get(product_type, CRE_MAP["all_cre"])["label"]
 
         print(f"\n{'='*50}")
@@ -873,27 +1079,25 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
         try:
             t0 = time.time()
 
-            # Parallel fetch: FDIC + NCUA + HMDA (if multifamily)
+            # Parallel fetch: FDIC + NCUA + HMDA
             with ThreadPoolExecutor(max_workers=3) as executor:
                 fdic_future = executor.submit(fetch_fdic_batch, state, min_assets)
                 ncua_future = executor.submit(get_ncua_for_state, state, min_assets)
-                hmda_future = None
-                if is_multifamily:
-                    hmda_future = executor.submit(fetch_hmda_for_deal, county_fips, state, years)
+                hmda_future = executor.submit(fetch_hmda_for_deal, county_fips, state, years)
 
                 fdic_data = fdic_future.result()
                 ncua_lenders = ncua_future.result()
-                hmda_data = hmda_future.result() if hmda_future else None
+                hmda_data = hmda_future.result()
 
             t_fetch = time.time() - t0
             print(f"  Fetch complete in {t_fetch:.1f}s")
 
-            # Build unified lender list
-            lenders = build_lender_list(fdic_data, ncua_lenders, product_type)
+            # Build unified lender list (includes specialty overlay for niche types)
+            lenders = build_lender_list(fdic_data, ncua_lenders, product_type, state=state)
             print(f"  Built lender list: {len(lenders)} lenders")
 
-            # Attach HMDA data (multifamily only)
-            if is_multifamily and hmda_data:
+            # Attach HMDA data
+            if hmda_data:
                 attach_hmda_data(lenders, hmda_data, county_fips)
                 print(f"  HMDA attached: {sum(1 for l in lenders if l.get('hmdaDeals', 0) > 0)} lenders with deals")
 
@@ -961,7 +1165,7 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
         try:
             fdic_data = fetch_fdic_batch(state, min_assets_m)
             ncua_lenders = get_ncua_for_state(state, min_assets_m)
-            lenders = build_lender_list(fdic_data, ncua_lenders, property_type)
+            lenders = build_lender_list(fdic_data, ncua_lenders, property_type, state=state)
 
             # Sort by portfolio size
             lenders.sort(key=lambda x: x.get("portfolioK", 0), reverse=True)
@@ -1215,9 +1419,358 @@ class LenderMatchHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json(None)
 
+    # ── Branch Discovery ──
+    def handle_branches(self, parsed):
+        params = parse_qs(parsed.query)
+        lender_type = params.get("type", [""])[0]
+        cert = params.get("cert", [""])[0]
+        charter = params.get("charter", [""])[0]
+        name = params.get("name", [""])[0]
+        lat = params.get("lat", [""])[0]
+        lon = params.get("lon", [""])[0]
+
+        try:
+            if lender_type == "Bank" and cert:
+                branches = self._fetch_fdic_branches(cert)
+            elif lender_type == "Credit Union" and name:
+                branches = self._fetch_ncua_branches(name, charter)
+            else:
+                return self.send_error_json("type + cert or name required", 400)
+
+            if lat and lon:
+                deal_lat, deal_lon = float(lat), float(lon)
+                for b in branches:
+                    b_lat = b.get("lat")
+                    b_lon = b.get("lon")
+                    if b_lat and b_lon:
+                        b["distanceMi"] = round(_haversine(deal_lat, deal_lon, b_lat, b_lon), 1)
+                    else:
+                        b["distanceMi"] = 9999
+                branches.sort(key=lambda x: x["distanceMi"])
+
+            self.send_json(branches)
+        except Exception as e:
+            self.send_error_json(str(e))
+
+    def _fetch_fdic_branches(self, cert):
+        cache_key = f"fdic_branches:{cert}"
+        cached = cache_get(cache_key)
+        if cached:
+            return cached
+
+        fields = "UNINUM,OFFNAME,MAINOFF,ADDRESS,CITY,STALP,ZIP,STNAME,CBSA_METRO_FLG,LATITUDE,LONGITUDE"
+        resp = SESSION.get(f"{FDIC_BASE}/locations", params={
+            "filters": f"CERT:{cert}", "fields": fields,
+            "limit": "500", "sort_by": "MAINOFF", "sort_order": "DESC",
+        }, timeout=30)
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+
+        branches = []
+        for item in data:
+            d = item.get("data", {})
+            branches.append({
+                "id": d.get("UNINUM", ""),
+                "name": d.get("OFFNAME", ""),
+                "mainOffice": d.get("MAINOFF", 0) == 1,
+                "address": d.get("ADDRESS", ""),
+                "city": d.get("CITY", ""),
+                "state": d.get("STALP", ""),
+                "zip": d.get("ZIP", ""),
+                "lat": d.get("LATITUDE"), "lon": d.get("LONGITUDE"),
+            })
+
+        cache_set(cache_key, branches)
+        return branches
+
+    def _fetch_ncua_branches(self, name, charter):
+        cache_key = f"ncua_branches:{charter or name}"
+        cached = cache_get(cache_key)
+        if cached:
+            return cached
+
+        payload = {
+            "searchText": name, "rdSearchType": "cuname",
+            "rdSearchRadiusList": None,
+            "is_mainOffice": False,
+            "is_mdi": False, "is_member": False, "is_drive": False,
+            "is_atm": False, "is_shared": False, "is_bilingual": False,
+            "is_credit_builder": False, "is_fin_counseling": False,
+            "is_homebuyer": False, "is_school": False, "is_low_wire": False,
+            "is_no_draft": False, "is_no_tax": False, "is_payday": False,
+            "skip": 0, "take": 100, "sort_item": "", "sort_direction": "",
+        }
+
+        resp = SESSION.post(NCUA_SEARCH_URL, json=payload, timeout=15)
+        resp.raise_for_status()
+        results = resp.json().get("list", [])
+
+        name_upper = name.upper().strip()
+        branches = []
+        for r in results:
+            rname = (r.get("creditUnionName") or "").upper().strip()
+            r_charter = str(r.get("creditUnionNumber", ""))
+            if charter and r_charter != str(charter):
+                continue
+            if not charter and rname != name_upper:
+                continue
+            branches.append({
+                "id": r_charter,
+                "name": r.get("creditUnionName", ""),
+                "mainOffice": r.get("isMainOffice", False),
+                "address": r.get("street", ""),
+                "city": r.get("city", ""),
+                "state": r.get("state", ""),
+                "zip": r.get("zipcode", ""),
+                "phone": _fmt_phone(r.get("phone", "")),
+                "lat": r.get("latitude"), "lon": r.get("longitude"),
+            })
+
+        cache_set(cache_key, branches)
+        return branches
+
+    # ── Serper: Find Loan Officers ──
+    def handle_find_officers(self, body):
+        serper_key = os.environ.get("SERPER_API_KEY", "")
+        if not serper_key:
+            return self.send_error_json("SERPER_API_KEY not configured")
+
+        lenders = body.get("lenders", [])
+        if not lenders:
+            return self.send_error_json("lenders list required", 400)
+
+        results = {}
+        for lender in lenders:
+            name = lender.get("name", "")
+            city = lender.get("city", "")
+            state = lender.get("state", "")
+            website = lender.get("website", "")
+            lender_id = lender.get("cert") or lender.get("charter") or name
+
+            officers = []
+            queries = [
+                f'"{name}" "commercial real estate" loan officer {city} {state}',
+                f'site:{website} commercial lending team' if website else
+                f'"{name}" commercial lending officer {state}',
+            ]
+
+            for q in queries:
+                if len(officers) >= 5:
+                    break
+                try:
+                    resp = SESSION.post("https://google.serper.dev/search", json={
+                        "q": q, "num": 10, "gl": "us",
+                    }, headers={
+                        "X-API-KEY": serper_key,
+                        "Content-Type": "application/json",
+                    }, timeout=15)
+                    resp.raise_for_status()
+                    found = _extract_officers_from_serp(resp.json(), name)
+                    for o in found:
+                        if o["name"] not in {x["name"] for x in officers}:
+                            officers.append(o)
+                except Exception:
+                    pass
+                time.sleep(0.5)
+
+            domain = ""
+            if website:
+                domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
+            for o in officers:
+                if domain:
+                    parts = o["name"].split()
+                    if len(parts) >= 2:
+                        first, last = parts[0].lower(), parts[-1].lower()
+                        o["emailGuesses"] = [
+                            f"{first}.{last}@{domain}",
+                            f"{first[0]}{last}@{domain}",
+                        ]
+
+            results[str(lender_id)] = officers
+
+        self.send_json(results)
+
+    # ── Tracerfy: Skip Trace Contacts ──
+    def handle_enrich_contacts(self, body):
+        tracerfy_key = os.environ.get("TRACERFY_API_KEY", "")
+        if not tracerfy_key:
+            return self.send_error_json("TRACERFY_API_KEY not configured")
+
+        officers = body.get("officers", [])
+        if not officers:
+            return self.send_error_json("officers list required", 400)
+
+        csv_buf = io.StringIO()
+        writer = csv.writer(csv_buf)
+        writer.writerow([
+            "owner_first_name", "owner_last_name",
+            "property_address", "property_city", "property_state", "property_zip",
+            "address", "city", "state", "zip",
+        ])
+        for o in officers:
+            parts = o.get("name", "").split()
+            first = parts[0] if parts else ""
+            last = parts[-1] if len(parts) > 1 else ""
+            writer.writerow([first, last,
+                             o.get("branchAddress", ""), o.get("branchCity", ""),
+                             o.get("branchState", ""), o.get("branchZip", ""),
+                             o.get("branchAddress", ""), o.get("branchCity", ""),
+                             o.get("branchState", ""), o.get("branchZip", "")])
+
+        try:
+            files = {"file": ("officers.csv", csv_buf.getvalue(), "text/csv")}
+            data = {
+                "first_name_column": "owner_first_name",
+                "last_name_column": "owner_last_name",
+                "address_column": "property_address",
+                "city_column": "property_city",
+                "state_column": "property_state",
+                "zip_column": "property_zip",
+                "mail_address_column": "address",
+                "mail_city_column": "city",
+                "mail_state_column": "state",
+                "mail_zip_column": "zip",
+            }
+
+            resp = SESSION.post("https://tracerfy.com/v1/api/trace/",
+                                files=files, data=data,
+                                headers={"Authorization": f"Bearer {tracerfy_key}"},
+                                timeout=30)
+            resp.raise_for_status()
+            upload_result = resp.json()
+            job_id = upload_result.get("queue_id") or upload_result.get("job_id") or upload_result.get("id")
+            if not job_id:
+                return self.send_error_json("No job ID from Tracerfy")
+
+            enriched = None
+            for _ in range(36):
+                time.sleep(5)
+                poll_resp = SESSION.get(f"https://tracerfy.com/v1/api/queue/{job_id}",
+                                       headers={"Authorization": f"Bearer {tracerfy_key}"},
+                                       timeout=15)
+                poll_resp.raise_for_status()
+                poll_data = poll_resp.json()
+
+                if isinstance(poll_data, list):
+                    enriched = poll_data
+                    break
+                if isinstance(poll_data, dict):
+                    status = (poll_data.get("status") or "").lower()
+                    if status in ("complete", "completed", "done") or poll_data.get("completed"):
+                        enriched = (poll_data.get("results") or poll_data.get("records")
+                                    or poll_data.get("data") or [])
+                        break
+
+            if enriched is None:
+                return self.send_error_json("Tracerfy job timed out")
+
+            contacts = []
+            for i, o in enumerate(officers):
+                record = enriched[i] if i < len(enriched) else {}
+                phones = record.get("phones") or record.get("phone_numbers") or []
+                emails = record.get("emails") or record.get("email_addresses") or []
+                if not phones:
+                    phones = [record.get(f"phone{j}") for j in range(1, 9) if record.get(f"phone{j}")]
+                if not emails:
+                    emails = [record.get(f"email{j}") for j in range(1, 6) if record.get(f"email{j}")]
+                contacts.append({
+                    "name": o.get("name", ""), "title": o.get("title", ""),
+                    "lender": o.get("lender", ""), "branch": o.get("branchName", ""),
+                    "phones": phones[:3], "emails": emails[:3],
+                    "emailGuesses": o.get("emailGuesses", []),
+                    "hit": bool(phones or emails),
+                })
+
+            self.send_json({
+                "contacts": contacts,
+                "stats": {"total": len(contacts), "hits": sum(1 for c in contacts if c["hit"])},
+                "cost": round(len(officers) * 0.02, 2),
+            })
+        except Exception as e:
+            self.send_error_json(str(e))
+
     def log_message(self, format, *args):
         if "/api/" in (args[0] if args else ""):
             super().log_message(format, *args)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Serper name extraction helpers (shared)
+# ════════════════════════════════════════════════════════════════════════
+
+HUMAN_NAME_RE = re.compile(
+    r'\b([A-Z][a-z]{1,15}(?:\s+[A-Z]\.?)?'
+    r'(?:\s+[A-Z][a-z]{1,20}|\s+[A-Z][a-z]{1,15}))\b'
+)
+TITLE_RE = re.compile(
+    r'(?:commercial\s+(?:loan|lending|real\s+estate)|CRE|'
+    r'(?:senior\s+)?(?:vice\s+president|VP|SVP|EVP)|'
+    r'(?:loan|lending|relationship|branch)\s+(?:officer|manager|director|specialist)|'
+    r'NMLS|mortgage\s+(?:loan|lending)\s+(?:officer|originator))',
+    re.IGNORECASE
+)
+SKIP_SERP_NAMES = {
+    "READ MORE", "LEARN MORE", "SEE ALL", "CLICK HERE", "CONTACT US",
+    "PRIVACY POLICY", "TERMS OF", "COOKIE POLICY", "ALL RIGHTS",
+}
+
+def _extract_officers_from_serp(serp_data, bank_name):
+    officers = []
+    seen_names = set()
+    texts = []
+
+    kg = serp_data.get("knowledgeGraph", {})
+    if kg:
+        for k, v in kg.get("attributes", {}).items():
+            texts.append(f"{k}: {v}")
+        texts.append(kg.get("description", ""))
+
+    ab = serp_data.get("answerBox", {})
+    if ab:
+        texts.append(ab.get("answer", ""))
+        texts.append(ab.get("snippet", ""))
+
+    for result in serp_data.get("organic", []):
+        texts.append(result.get("title", ""))
+        texts.append(result.get("snippet", ""))
+
+    full_text = " ".join(texts)
+    bank_upper = bank_name.upper()
+
+    for match in HUMAN_NAME_RE.finditer(full_text):
+        name = match.group(1).strip()
+        name_upper = name.upper()
+        if name_upper in seen_names:
+            continue
+        if any(s in name_upper for s in SKIP_SERP_NAMES):
+            continue
+        if name_upper in bank_upper:
+            continue
+
+        start = max(0, match.start() - 100)
+        end = min(len(full_text), match.end() + 100)
+        context = full_text[start:end]
+
+        title_match = TITLE_RE.search(context)
+        if title_match:
+            seen_names.add(name_upper)
+            officers.append({
+                "name": name,
+                "title": title_match.group(0).strip(),
+                "source": "serper",
+            })
+
+    return officers
+
+
+def _haversine(lat1, lon1, lat2, lon2):
+    R = 3959
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 def main():
